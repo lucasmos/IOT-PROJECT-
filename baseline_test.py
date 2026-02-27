@@ -7,6 +7,8 @@ from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 import tensorflow as tf
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 Sequential = tf.keras.models.Sequential
 InputLayer = tf.keras.layers.InputLayer
@@ -82,9 +84,11 @@ models = {
 }
 
 results = []
+model_predictions = {}
 for name, model in models.items():
     model.fit(X_train_df, y_train)
     preds = model.predict(X_test_df)
+    model_predictions[name] = preds
 
     results.append({
         "Model": name,
@@ -105,3 +109,126 @@ results.append({
 comparison_df = pd.DataFrame(results)
 print("\n--- Model Comparison Table ---")
 print(comparison_df.to_string(index=False))
+
+# 10. Visualizations
+sns.set_style("whitegrid")
+sns.set_palette("husl")
+
+# 10.1 Model Comparison - Bar Charts
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+fig.suptitle("Model Performance Comparison", fontsize=16, fontweight='bold')
+
+# R2 Score comparison
+axes[0].bar(comparison_df['Model'], comparison_df['R2'], color='steelblue', alpha=0.7, edgecolor='black')
+axes[0].set_ylabel('R² Score', fontsize=11, fontweight='bold')
+axes[0].set_title('R² Score (Higher is Better)', fontsize=12)
+axes[0].set_ylim([0, 1])
+for i, v in enumerate(comparison_df['R2']):
+    axes[0].text(i, v + 0.02, f'{v:.4f}', ha='center', fontweight='bold')
+axes[0].tick_params(axis='x', rotation=45)
+
+# MAE comparison
+axes[1].bar(comparison_df['Model'], comparison_df['MAE'], color='coral', alpha=0.7, edgecolor='black')
+axes[1].set_ylabel('MAE', fontsize=11, fontweight='bold')
+axes[1].set_title('Mean Absolute Error (Lower is Better)', fontsize=12)
+for i, v in enumerate(comparison_df['MAE']):
+    axes[1].text(i, v + 0.01, f'{v:.4f}', ha='center', fontweight='bold')
+axes[1].tick_params(axis='x', rotation=45)
+
+# RMSE comparison
+axes[2].bar(comparison_df['Model'], comparison_df['RMSE'], color='lightgreen', alpha=0.7, edgecolor='black')
+axes[2].set_ylabel('RMSE', fontsize=11, fontweight='bold')
+axes[2].set_title('Root Mean Squared Error (Lower is Better)', fontsize=12)
+for i, v in enumerate(comparison_df['RMSE']):
+    axes[2].text(i, v + 0.01, f'{v:.4f}', ha='center', fontweight='bold')
+axes[2].tick_params(axis='x', rotation=45)
+
+plt.tight_layout()
+plt.savefig('model_comparison.png', dpi=300, bbox_inches='tight')
+print("\n✓ Saved: model_comparison.png")
+plt.show()
+
+# 10.2 Actual vs Predicted for each model
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle("Actual vs Predicted Soil Moisture", fontsize=16, fontweight='bold')
+
+model_names = list(model_predictions.keys()) + ["LSTM"]
+predictions_list = list(model_predictions.values()) + [lstm_preds]
+
+for idx, (name, preds) in enumerate(zip(model_names, predictions_list)):
+    row, col = idx // 2, idx % 2
+    ax = axes[row, col]
+    
+    ax.scatter(y_test, preds, alpha=0.6, s=30, edgecolor='black', linewidth=0.5)
+    
+    # Perfect prediction line
+    min_val = min(y_test.min(), preds.min())
+    max_val = max(y_test.max(), preds.max())
+    ax.plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Perfect Prediction')
+    
+    ax.set_xlabel('Actual Soil Moisture', fontsize=10, fontweight='bold')
+    ax.set_ylabel('Predicted Soil Moisture', fontsize=10, fontweight='bold')
+    ax.set_title(f'{name} (R² = {comparison_df.loc[comparison_df["Model"] == name, "R2"].values[0]:.4f})', 
+                 fontsize=11, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('actual_vs_predicted.png', dpi=300, bbox_inches='tight')
+print("✓ Saved: actual_vs_predicted.png")
+plt.show()
+
+# 10.3 Residuals Analysis
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle("Model Residuals Analysis", fontsize=16, fontweight='bold')
+
+for idx, (name, preds) in enumerate(zip(model_names, predictions_list)):
+    row, col = idx // 2, idx % 2
+    ax = axes[row, col]
+    
+    residuals = y_test - preds
+    ax.scatter(preds, residuals, alpha=0.6, s=30, edgecolor='black', linewidth=0.5)
+    ax.axhline(y=0, color='r', linestyle='--', lw=2, label='Zero Error')
+    
+    ax.set_xlabel('Predicted Soil Moisture', fontsize=10, fontweight='bold')
+    ax.set_ylabel('Residuals', fontsize=10, fontweight='bold')
+    ax.set_title(f'{name} Residuals (RMSE = {comparison_df.loc[comparison_df["Model"] == name, "RMSE"].values[0]:.4f})',
+                 fontsize=11, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('residuals_analysis.png', dpi=300, bbox_inches='tight')
+print("✓ Saved: residuals_analysis.png")
+plt.show()
+
+# 10.4 Distribution of Predictions vs Actual
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle("Distribution: Actual vs Predicted", fontsize=16, fontweight='bold')
+
+for idx, (name, preds) in enumerate(zip(model_names, predictions_list)):
+    row, col = idx // 2, idx % 2
+    ax = axes[row, col]
+    
+    ax.hist(y_test, bins=30, alpha=0.6, label='Actual', color='steelblue', edgecolor='black')
+    ax.hist(preds, bins=30, alpha=0.6, label='Predicted', color='coral', edgecolor='black')
+    
+    ax.set_xlabel('Soil Moisture', fontsize=10, fontweight='bold')
+    ax.set_ylabel('Frequency', fontsize=10, fontweight='bold')
+    ax.set_title(f'{name}', fontsize=11, fontweight='bold')
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('distribution_comparison.png', dpi=300, bbox_inches='tight')
+print("✓ Saved: distribution_comparison.png")
+plt.show()
+
+# 10.5 Summary statistics
+print("\n--- Visualization Summary ---")
+print("Generated 4 visualization files:")
+print("  1. model_comparison.png - Bar charts of R², MAE, RMSE")
+print("  2. actual_vs_predicted.png - Scatter plots for each model")
+print("  3. residuals_analysis.png - Residual distributions")
+print("  4. distribution_comparison.png - Histogram comparisons")
+print("\nAll plots saved in the project directory.")
