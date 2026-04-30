@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "TMPL2aBRQHFV0"
-#define BLYNK_TEMPLATE_NAME "Irrigation Node"
-#define BLYNK_AUTH_TOKEN "4KHJciklWut8LKN8Mx3C3_4W3JRrC50N"
+#define BLYNK_TEMPLATE_ID ""
+#define BLYNK_TEMPLATE_NAME ""
+#define BLYNK_AUTH_TOKEN ""
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -12,8 +12,8 @@
 #include <esp_task_wdt.h>
 
 // --- CREDENTIALS & API ---
-const char* ssid = "NAMALUKI";
-const char* pass = "suchcharacter10";
+const char* ssid = "";
+const char* pass = "";
 const char* api_url = "http://api.open-meteo.com/v1/forecast?latitude=-1.37&longitude=36.93&current=rain&models=ecmwf_ifs&timezone=auto";
 
 // --- LORA & LED PINS ---
