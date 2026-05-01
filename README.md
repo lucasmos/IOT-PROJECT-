@@ -26,7 +26,7 @@ An end-to-end precision agriculture system combining ESP32 firmware, LoRa wirele
 
 ## Project Overview
 
-AquaAura addresses water scarcity in Kenyan agriculture by automating irrigation using AI-powered soil moisture prediction. The system:
+This IoT project addresses water scarcity in Kenyan agriculture by automating irrigation using AI-powered soil moisture prediction. The system:
 
 - Reads temperature, humidity, rainfall, and soil moisture data from sensors on an ESP32 field node
 - Runs an Edge Impulse neural network **on-device** to predict future soil moisture
